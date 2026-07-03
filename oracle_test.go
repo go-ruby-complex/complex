@@ -5,6 +5,7 @@
 package complex
 
 import (
+	"math"
 	"os/exec"
 	"strings"
 	"testing"
@@ -106,6 +107,13 @@ func TestOracleArithmetic(t *testing.T) {
 		{ci(2, 3).Pow(IntFromInt64(-2)), "Complex(2,3)**-2"},
 		{ci(1, 2).Pow(IntFromInt64(10)), "Complex(1,2)**10"},
 		{New(ratNum(1, 2), ratNum(3, 4)).Mul(ci(2, 0)), "Complex(Rational(1,2),Rational(3,4))*Complex(2,0)"},
+		// int64 fast path overflowing mid-computation must promote to Bignum exactly,
+		// matching MRI's Fixnum→Bignum arithmetic byte-for-byte.
+		{ci(math.MaxInt64, 0).Add(ci(1, 0)), "Complex(9223372036854775807,0)+Complex(1,0)"},
+		{New(IntFromInt64(3037000500), IntFromInt64(1)).Mul(New(IntFromInt64(3037000500), IntFromInt64(1))),
+			"Complex(3037000500,1)*Complex(3037000500,1)"},
+		{ci(math.MaxInt64, math.MaxInt64).Mul(ci(math.MaxInt64, 0)),
+			"Complex(9223372036854775807,9223372036854775807)*Complex(9223372036854775807,0)"},
 	}
 	for _, c := range cases {
 		want := rubyComplex(t, bin, "print ("+c.ruby+").inspect")
